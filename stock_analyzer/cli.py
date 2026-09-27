@@ -21,6 +21,13 @@ SORT_KEYS = {
 }
 
 
+def _non_negative_int(value: str) -> int:
+    n = int(value)
+    if n < 0:
+        raise argparse.ArgumentTypeError(f"must be 0 or greater, got {n}")
+    return n
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="stock-analyzer",
@@ -47,7 +54,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("history", help="print price bars, optionally with indicators")
     p.add_argument("source", metavar="SOURCE")
     add_source_opts(p, "3mo")
-    p.add_argument("--limit", "-n", type=int, default=20, help="show only the last N bars (0 = all, default: 20)")
+    p.add_argument("--limit", "-n", type=_non_negative_int, default=20, help="show only the last N bars (0 = all, default: 20)")
     p.add_argument("--indicators", action="store_true", help="add SMA20/SMA50/RSI14/MACD columns")
     p.add_argument("--format", "-f", choices=("table", "csv", "json"), default="table")
     p.set_defaults(func=cmd_history)
@@ -84,7 +91,7 @@ def cmd_analyze(args: argparse.Namespace) -> int:
 
     cur = f" {s['currency']}" if s["currency"] else ""
     print(f"{s['symbol']}  {_num(s['close'])}{cur}  {_signed(s['change'])} ({_pct(s['change_pct'])})")
-    print(f"{s['start']} → {s['end']}  ({s['bars']} bars)")
+    print(f"{s['start']} → {s['end']}  ({s['bars']} bar{'' if s['bars'] == 1 else 's'})")
     print()
     _print_section("Performance", [
         ("Total return", _pct(s["total_return"])),

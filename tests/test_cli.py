@@ -63,6 +63,11 @@ class CliTests(unittest.TestCase):
         self.assertIn("UPTREND", out)
         self.assertIn("skipping missing.csv", err)
 
+    def test_negative_limit_rejected(self):
+        with self.assertRaises(SystemExit) as ctx, contextlib.redirect_stderr(io.StringIO()):
+            main(["history", UP, "-n", "-5"])
+        self.assertEqual(ctx.exception.code, 2)
+
     def test_bad_source(self):
         code, _, err = run("analyze", "missing.csv")
         self.assertEqual(code, 1)

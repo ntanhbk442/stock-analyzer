@@ -93,13 +93,16 @@ def load_csv(path: str) -> PriceHistory:
 
         bars = []
         for row in reader:
-            close = _parse_float(get(row, "close"))
-            if close is None:
-                continue
-            open_ = _parse_float(get(row, "open"))
-            high = _parse_float(get(row, "high"))
-            low = _parse_float(get(row, "low"))
-            volume = _parse_float(get(row, "volume"))
+            try:
+                close = _parse_float(get(row, "close"))
+                if close is None:
+                    continue
+                open_ = _parse_float(get(row, "open"))
+                high = _parse_float(get(row, "high"))
+                low = _parse_float(get(row, "low"))
+                volume = _parse_float(get(row, "volume"))
+            except ValueError as exc:
+                raise DataError(f"{path}, line {reader.line_num}: {exc}") from None
             bars.append(
                 Bar(
                     date=_parse_date(get(row, "date")),
@@ -133,9 +136,13 @@ def fetch_yahoo(symbol: str, range_: str = "1y", interval: str = "1d", timeout: 
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
             raise DataError(f"Unknown symbol: {symbol}") from None
+        if exc.code == 429:
+            raise DataError("Yahoo Finance is rate-limiting requests (HTTP 429); wait a minute and retry") from None
         raise DataError(f"Yahoo Finance request failed for {symbol}: HTTP {exc.code}") from None
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
         raise DataError(f"Could not reach Yahoo Finance for {symbol}: {exc}") from None
+    except ValueError:
+        raise DataError(f"Yahoo Finance returned an unexpected (non-JSON) response for {symbol}") from None
     return parse_yahoo_chart(symbol, payload)
 
 
